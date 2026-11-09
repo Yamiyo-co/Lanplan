@@ -1,5 +1,4 @@
-"""
-Flask web GUI - version 2 of the planner.
+"""Flask web GUI - Web version 1.2.
 
 Pages:
     /            dashboard (stats + charts)
@@ -28,6 +27,15 @@ app = Flask(__name__)
 # Simple in-memory timer state (single-user local app).
 _timer_state = {"uid": None, "start": None, "event": None}
 
+# -- Theme (colors live in App_settings/theme.json) ------------------------
+
+from .theme import load_theme
+
+
+def _theme():
+    """Effective theme: defaults overridden by App_settings/theme.json."""
+    return load_theme()
+
 
 def _duration_of(row):
     sh, sm = map(int, row["start_time"].split(":"))
@@ -42,24 +50,29 @@ _BASE = """
 <meta charset="utf-8">
 <title>Language Planner</title>
 <style>
+ :root {
+   --bg: {{ t.bg }}; --fg: {{ t.fg }}; --nav: {{ t.nav }};
+   --accent: {{ t.accent }}; --warn: {{ t.warn }}; --ok: {{ t.ok }};
+   --panel: {{ t.panel }}; --head: {{ t.head }};
+ }
  body { font-family: system-ui, sans-serif; margin: 0;
-        background: #f6f7fb; color: #222; }
- nav { background: #1d2a44; padding: .8rem 2rem; }
+        background: var(--bg); color: var(--fg); }
+ nav { background: var(--nav); padding: .8rem 2rem; }
  nav a { color: #fff; margin-right: 1.4rem; text-decoration: none;
          font-weight: 500; }
  main { padding: 2rem; max-width: 1000px; margin: auto; }
- table { border-collapse: collapse; background: #fff; width: 100%;
+ table { border-collapse: collapse; background: var(--panel); width: 100%;
          box-shadow: 0 1px 4px rgba(0,0,0,.08);
          border-radius: 8px; overflow: hidden; }
  th, td { padding: .55rem .9rem; text-align: left;
           border-bottom: 1px solid #eee; font-size: .92rem; }
- th { background: #eef1f8; }
+ th { background: var(--head); }
  .btn { display: inline-block; padding: .45rem .9rem; margin: .2rem;
-        background: #4c6ef5; color: #fff; border: none;
+        background: var(--accent); color: #fff; border: none;
         border-radius: 6px; text-decoration: none; cursor: pointer; }
- .btn.warn { background: #e8590c; }
- .btn.ok { background: #12b886; }
- .card { background: #fff; border-radius: 10px; padding: 1rem 1.4rem;
+ .btn.warn { background: var(--warn); }
+ .btn.ok { background: var(--ok); }
+ .card { background: var(--panel); border-radius: 10px; padding: 1rem 1.4rem;
          box-shadow: 0 1px 4px rgba(0,0,0,.08); display:
          inline-block; margin: .3rem; }
  .value { font-size: 1.5rem; font-weight: 600; }
@@ -82,7 +95,7 @@ _BASE = """
 
 
 def _page(body):
-    return render_template_string(_BASE, body=body)
+    return render_template_string(_BASE, body=body, t=_theme())
 
 
 @app.route("/")
@@ -222,10 +235,17 @@ def timer_page():
 
     running = ""
     if _timer_state["start"] is not None:
+        rated = " ".join(
+            f"<a class='btn warn' "
+            f"href='/timer/stop?quality={q}'>{q}</a>"
+            for q in range(6))
         running = (
             f"<p class='card'><b>Running:</b> "
-            f"{_timer_state['event']['summary']} — "
-            f"<a class='btn warn' href='/timer/stop'>Stop</a></p>")
+            f"{_timer_state['event']['summary']}</p>"
+            f"<p>Rate the session (0-5), then click your score:"
+            f" {rated} "
+            f"<a class='btn' href='/timer/stop'>stop, no rating</a>"
+            f"</p>")
 
     return _page(f"""
     <h1>Timer - {today}</h1>
