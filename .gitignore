@@ -1,1 +1,13 @@
-Conf/.env
+# Secrets
+.env
+conf/.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Local data
+data/
+backups/
+dashboard.html
